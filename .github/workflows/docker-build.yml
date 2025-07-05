@@ -33,8 +33,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Build image
-        run:
-          podman build . --tag $IMAGE_NAME --file Dockerfile
+        run: podman build . --tag $IMAGE_NAME --file Dockerfile
       - name: Basic Test
         run: |
           podman run --shm-size=1g \
@@ -153,4 +152,10 @@ jobs:
             -v `pwd`/test/timezones.robot:/opt/robotframework/tests/timezones.robot:Z \
             -e BROWSER=$BROWSER \
             -e TZ="America/New_York" \
+            $IMAGE_NAME
+      - name: Rerun Test
+        run: |
+          podman run --user=2000:2000 --shm-size=1g \
+            -v `pwd`/test/rerun.robot:/opt/robotframework/tests/rerun.robot:Z \
+            -e ROBOT_RERUN_TIMES=20 \
             $IMAGE_NAME

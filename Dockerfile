@@ -15,6 +15,9 @@ ENV ROBOT_TESTS_DIR /opt/robotframework/tests
 # Set the working directory environment variable
 ENV ROBOT_WORK_DIR /opt/robotframework/temp
 
+# Set the maximum number of rounds to rerun failed tests
+ENV ROBOT_RERUN_TIMES 0
+
 # Setup X Window Virtual Framebuffer
 ENV SCREEN_COLOUR_DEPTH 24
 ENV SCREEN_HEIGHT 1080
@@ -55,26 +58,21 @@ ENV XVFB_VERSION 1.20
 # By default, no reports are uploaded to AWS S3
 ENV AWS_UPLOAD_TO_S3 false
 
-# Prepare binaries to be executed
-COPY bin/chromedriver.sh /opt/robotframework/drivers/chromedriver
-COPY bin/chrome.sh /opt/robotframework/bin/chrome
-COPY bin/run-tests-in-virtual-screen.sh /opt/robotframework/bin/
-
 # Install system dependencies
 RUN dnf upgrade -y --refresh \
   && dnf install -y \
-    dbus-glib \
-    dnf-plugins-core \
-    firefox-${FIREFOX_VERSION}* \
-    gcc \
-    gcc-c++ \
-    nodejs \
-    npm \
-    python3-pip \
-    python3-pyyaml \
-    tzdata \
-    wget \
-    xorg-x11-server-Xvfb-${XVFB_VERSION}* \
+  dbus-glib \
+  dnf-plugins-core \
+  firefox-${FIREFOX_VERSION}* \
+  gcc \
+  gcc-c++ \
+  nodejs \
+  npm \
+  python3-pip \
+  python3-pyyaml \
+  tzdata \
+  wget \
+  xorg-x11-server-Xvfb-${XVFB_VERSION}* \
   && dnf clean all
 
 # Install Chrome for Testing
@@ -114,15 +112,15 @@ RUN wget -q "https://github.com/mozilla/geckodriver/releases/download/$GECKO_DRI
 RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc \
   && dnf config-manager --add-repo https://packages.microsoft.com/yumrepos/edge \
   && dnf install -y \
-    microsoft-edge-stable-${MICROSOFT_EDGE_VERSION} \
-    zip \
+  microsoft-edge-stable-${MICROSOFT_EDGE_VERSION} \
+  zip \
   && wget -q "https://msedgedriver.azureedge.net/${MICROSOFT_EDGE_VERSION}/edgedriver_linux64.zip" \
   && unzip edgedriver_linux64.zip -d edge \
   && mv edge/msedgedriver /opt/robotframework/drivers/msedgedriver \
   && rm -Rf edgedriver_linux64.zip edge/ \
   # IMPORTANT: don't remove the wget package because it's a dependency of Microsoft Edge
   && dnf remove -y \
-    zip \
+  zip \
   && dnf clean all
 
 ENV PATH=/opt/microsoft/msedge:$PATH
@@ -130,6 +128,11 @@ ENV PATH=/opt/microsoft/msedge:$PATH
 # FIXME: Playright currently doesn't support relying on system browsers, which is why the `--skip-browsers` parameter cannot be used here.
 # Additionally, it cannot run fully on any OS due to https://github.com/microsoft/playwright/issues/29559
 RUN rfbrowser init chromium firefox
+
+# Prepare binaries to be executed
+COPY bin/chromedriver.sh /opt/robotframework/drivers/chromedriver
+COPY bin/chrome.sh /opt/robotframework/bin/chrome
+COPY bin/run-tests-in-virtual-screen.sh /opt/robotframework/bin/
 
 # Create the default report and work folders with the default user to avoid runtime issues
 # These folders are writeable by anyone, to ensure the user can be changed on the command line.
