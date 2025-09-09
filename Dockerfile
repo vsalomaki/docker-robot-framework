@@ -3,6 +3,7 @@ FROM fedora:42
 LABEL authors     Paul Podgorsek
 LABEL description Robot Framework in Docker.
 
+# For multiplatform builds
 ARG TARGETPLATFORM
 
 # Set the Python dependencies' directory environment variable
@@ -104,13 +105,14 @@ RUN pip3 install \
 
 # Gecko drivers
 # Download Gecko drivers directly from the GitHub repository
-RUN wget -q "https://github.com/mozilla/geckodriver/releases/download/$GECKO_DRIVER_VERSION/geckodriver-$GECKO_DRIVER_VERSION-linux64.tar.gz" \
-  && tar xzf geckodriver-$GECKO_DRIVER_VERSION-linux64.tar.gz \
+RUN if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then GECKO_ARCH="linux-aarch64"; else GECKO_ARCH="linux64"; fi; \
+  wget -q "https://github.com/mozilla/geckodriver/releases/download/${GECKO_DRIVER_VERSION}/geckodriver-${GECKO_DRIVER_VERSION}-${GECKO_ARCH}.tar.gz" \
+  && tar xzf geckodriver-${GECKO_DRIVER_VERSION}-${GECKO_ARCH}.tar.gz \
   && mkdir -p /opt/robotframework/drivers/ \
   && mv geckodriver /opt/robotframework/drivers/geckodriver \
-  && rm geckodriver-$GECKO_DRIVER_VERSION-linux64.tar.gz
+  && rm geckodriver-${GECKO_DRIVER_VERSION}-${GECKO_ARCH}.tar.gz
 
-# Install Microsoft Edge & webdriver
+# Install Microsoft Edge & webdriver. ARM only available for Windows as of 09.2025
 RUN if [ $TARGETPLATFORM = "linux/amd64" ]; then \ 
   rpm --import https://packages.microsoft.com/keys/microsoft.asc \
   && dnf config-manager addrepo --from-repofile=https://packages.microsoft.com/yumrepos/edge/config.repo \
