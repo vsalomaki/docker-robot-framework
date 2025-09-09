@@ -3,6 +3,8 @@ FROM fedora:42
 LABEL authors     Paul Podgorsek
 LABEL description Robot Framework in Docker.
 
+ARG TARGETPLATFORM
+
 # Set the Python dependencies' directory environment variable
 ENV ROBOT_DEPENDENCY_DIR /opt/robotframework/dependencies
 
@@ -44,7 +46,7 @@ ENV DATADRIVER_VERSION 1.11.2
 ENV DATETIMETZ_VERSION 1.0.6
 ENV MICROSOFT_EDGE_VERSION 139.0.3405.86
 ENV FAKER_VERSION 6.0.0
-ENV FIREFOX_VERSION 141.0
+ENV FIREFOX_VERSION 142.0
 ENV FTP_LIBRARY_VERSION 1.9
 ENV GECKO_DRIVER_VERSION v0.36.0
 ENV IMAP_LIBRARY_VERSION 0.4.11
@@ -61,18 +63,18 @@ ENV AWS_UPLOAD_TO_S3 false
 # Install system dependencies
 RUN dnf upgrade -y --refresh \
   && dnf install -y \
-    dbus-glib \
-    dnf-plugins-core \
-    firefox-${FIREFOX_VERSION}* \
-    gcc \
-    gcc-c++ \
-    nodejs \
-    npm \
-    python3-pip \
-    python3-pyyaml \
-    tzdata \
-    wget \
-    xorg-x11-server-Xvfb-${XVFB_VERSION}* \
+  dbus-glib \
+  dnf-plugins-core \
+  firefox-${FIREFOX_VERSION}* \
+  gcc \
+  gcc-c++ \
+  nodejs \
+  npm \
+  python3-pip \
+  python3-pyyaml \
+  tzdata \
+  wget \
+  xorg-x11-server-Xvfb-${XVFB_VERSION}* \
   && dnf clean all
 
 # Install Chrome for Testing
@@ -109,19 +111,21 @@ RUN wget -q "https://github.com/mozilla/geckodriver/releases/download/$GECKO_DRI
   && rm geckodriver-$GECKO_DRIVER_VERSION-linux64.tar.gz
 
 # Install Microsoft Edge & webdriver
-RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc \
+RUN if [ $TARGETPLATFORM = "linux/amd64" ]; then \ 
+  rpm --import https://packages.microsoft.com/keys/microsoft.asc \
   && dnf config-manager addrepo --from-repofile=https://packages.microsoft.com/yumrepos/edge/config.repo \
   && dnf install -y \
-    microsoft-edge-stable-${MICROSOFT_EDGE_VERSION} \
-    zip \
+  microsoft-edge-stable-${MICROSOFT_EDGE_VERSION} \
+  zip \
   && wget -q "https://msedgedriver.microsoft.com/${MICROSOFT_EDGE_VERSION}/edgedriver_linux64.zip" \
   && unzip edgedriver_linux64.zip -d edge \
   && mv edge/msedgedriver /opt/robotframework/drivers/msedgedriver \
   && rm -Rf edgedriver_linux64.zip edge/ \
   # IMPORTANT: don't remove the wget package because it's a dependency of Microsoft Edge
   && dnf remove -y \
-    zip \
-  && dnf clean all
+  zip \
+  && dnf clean all \
+  ; fi
 
 ENV PATH=/opt/microsoft/msedge:$PATH
 

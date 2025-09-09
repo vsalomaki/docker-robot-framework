@@ -20,6 +20,18 @@ jobs:
   # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   build:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Initialise the manifest
+        run: podman manifest create $IMAGE_NAME
+
+      - name: Build the arm+amd images
+        run: podman build --platform linux/amd64,linux/arm64 --manifest $IMAGE_NAME .
+
+  test:
+    runs-on: ubuntu-latest
     # run all our tests on each browser
     strategy:
       matrix:
@@ -30,11 +42,8 @@ jobs:
     env:
       BROWSER: ${{ matrix.browser }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Build image
-        run:
-          podman build . --tag $IMAGE_NAME --file Dockerfile
+        run: podman build . --tag $IMAGE_NAME --file Dockerfile
       - name: Basic Test
         run: |
           podman run --shm-size=1g \
